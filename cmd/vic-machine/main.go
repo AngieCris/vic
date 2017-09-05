@@ -127,7 +127,14 @@ func main() {
 
 	app.Version = version.GetBuild().ShortVersion()
 
-	logs := []io.Writer{app.Writer}
+	// logs := []io.Writer{app.Writer}
+	logs := []io.Writer{}
+
+	// set up io pipe
+	pr, pw := io.Pipe()
+	done := make(chan int, 1)
+	logs = append(logs, pw)
+
 	// Open log file
 	// #nosec: Expect file permissions to be 0600 or less
 	f, err := os.OpenFile(LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
@@ -153,7 +160,28 @@ func main() {
 	}()
 
 	// #nosec: Errors unhandled.
-	app.Run(os.Args)
+
+	// writer
+	go func() {
+		app.Run(os.Args)
+		// done writing
+		pw.Close()
+		done<-1
+	}()
+
+	// reader
+	for {
+		select {
+			case <-done:
+				return
+			default:
+				data := make([]byte, 2024)
+				pr.Read(data)
+				fmt.Fprintf(app.Writer, "yoooo")
+				fmt.Fprintf(app.Writer, string(data))
+		}
+	}
+
 }
 
 func showVersion(cli *cli.Context) error {

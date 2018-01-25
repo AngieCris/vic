@@ -120,6 +120,18 @@ func main() {
 	// #nosec: Errors unhandled.
 	viclog.Init(logcfg)
 
+	hook, err := syslog.NewHook(
+		logcfg.Syslog.Network,
+		logcfg.Syslog.RAddr,
+		logcfg.Syslog.Priority,
+		logcfg.Syslog.Tag,
+	)
+	if err != nil {
+		log.Warnf("error trying to initialize syslog: %s", err)
+	}
+
+	trace.Logger.Hooks.Add(hook)
+
 	server.ConfigureAPI()
 
 	// BEGIN

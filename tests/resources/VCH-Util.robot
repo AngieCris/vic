@@ -86,9 +86,11 @@ Set Test VCH Name
     Set Environment Variable  VCH-NAME  ${name}
 
 Set Log Aggregator Argument
+    [Arguments]  ${additional-args}=${EMPTY}
     ${log_agg}=  Get Environment Variable  LOG_AGGR_ADDR  ''
-    Run Keyword If  $log_agg != ''  Set Environment Variable  LOG_AGG  --syslog-address=tcp://${log_agg}
-    Run Keyword If  $log_agg == ''  Set Environment Variable  LOG_AGG  ${EMPTY}
+    Run Keyword If  '--syslog-addr' in '${additional_args}'  Set Environment Variable  LOG_AGG  ''
+    ...  ELSE IF  $log_agg != ''  Set Environment Variable  LOG_AGG  --syslog-address=tcp://${log_agg}
+    ...  ELSE  Set Environment Variable  LOG_AGG  ${EMPTY}
 
 Set List Of Env Variables
     [Arguments]  ${vars}
@@ -307,7 +309,7 @@ Run VIC Machine Command
     [Tags]  secret
     [Arguments]  ${vic-machine}  ${appliance-iso}  ${bootstrap-iso}  ${certs}  ${vol}  ${debug}  ${additional-args}
 
-    Set Log Aggregator Argument
+    Set Log Aggregator Argument  ${additional-args}
 
     ${output}=  Run Keyword If  ${certs}  Run  ${vic-machine} create --debug ${debug} --name=%{VCH-NAME} --target=%{TEST_URL}%{TEST_DATACENTER} --thumbprint=%{TEST_THUMBPRINT} --user=%{TEST_USERNAME} --image-store=%{TEST_DATASTORE} --appliance-iso=${appliance-iso} --bootstrap-iso=${bootstrap-iso} --password=%{TEST_PASSWORD} --force=true --bridge-network=%{BRIDGE_NETWORK} --public-network=%{PUBLIC_NETWORK} --compute-resource=%{TEST_RESOURCE} --timeout %{TEST_TIMEOUT} --insecure-registry harbor.ci.drone.local --volume-store=%{TEST_DATASTORE}/%{VCH-NAME}-VOL:${vol} --container-network=%{PUBLIC_NETWORK}:public ${vicmachinetls} ${additional-args} %{LOG_AGG}
     Run Keyword If  ${certs}  Should Contain  ${output}  Installer completed successfully
